@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BurnLink</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f0f0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .container {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 480px;
+    width: 100%;
+  }
+  h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+  .subtitle {
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+  input {
+    width: 100%;
+    padding: 12px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+  }
+  input:focus { border-color: #555; }
+  input::placeholder { color: #555; }
+  .btn {
+    display: inline-block;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 24px;
+    width: 100%;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-burn { background: #dc2626; color: #fff; }
+  .btn-copy { background: #333; color: #fff; margin-top: 12px; }
+  .url-box {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 14px;
+    word-break: break-all;
+    font-family: monospace;
+    font-size: 13px;
+    color: #4ade80;
+    margin-top: 16px;
+    user-select: all;
+  }
+  .card-display {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  .card-display .field { margin-bottom: 12px; }
+  .card-display .field-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+  .card-display .field-value { font-size: 18px; color: #fff; font-family: monospace; margin-top: 4px; }
+  .success { color: #4ade80; }
+  .error { color: #f87171; }
+  .expired-icon { font-size: 48px; text-align: center; margin-bottom: 16px; }
+  #view { display: none; }
+  .lock-icon { font-size: 32px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+{% if mode == "landing" %}
+<!-- LANDING: Create a new drop -->
+<div id="landing">
+  <div class="lock-icon">&#128274;</div>
+  <h1>BurnLink</h1>
+  <p class="subtitle">Create a secure, one-time link for sharing sensitive details. End-to-end encrypted — the server never sees your data.</p>
+  <button class="btn btn-primary" onclick="createDrop()">Create Secure Drop</button>
+</div>
+<div id="created" style="display:none">
+  <div class="lock-icon">&#9989;</div>
+  <h1>Link Created</h1>
+  <p class="subtitle">Send this link to the person who needs to enter the details. Once you've read the data, click BURN to destroy it forever.</p>
+  <div class="url-box" id="drop-url"></div>
+  <button class="btn btn-copy" onclick="copyUrl()">Copy Link</button>
+  <p id="copy-status" style="margin-top:8px; font-size:13px;"></p>
+</div>
+
+<script>
+async function createDrop() {
+  const key = await crypto.subtle.generateKey({name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt']);
+  const exported = await crypto.subtle.exportKey('raw', key);
+  const keyB64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
+
+  const res = await fetch('/api/drops', {method: 'POST'});
+  const {id} = await res.json();
+
+  const url = `${location.origin}/drop/${id}#${keyB64}`;
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('created').style.display = 'block';
+  document.getElementById('drop-url').textContent = url;
+}
+
+function copyUrl() {
+  const url = document.getElementById('drop-url').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    document.getElementById('copy-status').innerHTML = '<span class="success">Copied!</span>';
+  });
+}
+</script>
+
+{% elif mode == "drop" %}
+<!-- DROP PAGE: form / view / expired -->
+<div id="loading">
+  <h1>Loading...</h1>
+</div>
+
+<div id="form" style="display:none">
+  <div class="lock-icon">&#128274;</div>
+  <h1>Secure Form</h1>
+  <p class="subtitle">Your details will be encrypted in your browser before being sent. The server never sees the plaintext.</p>
+  <form onsubmit="submitForm(event)">
+    <label>Name on Card</label>
+    <input type="text" id="cc-name" placeholder="J. Smith" autocomplete="off" required>
+    <label>Card Number</label>
+    <input type="text" id="cc-number" placeholder="4242 4242 4242 4242" autocomplete="off" inputmode="numeric" required maxlength="19" oninput="formatCardNumber(this)">
+    <div style="display:flex; gap:12px;">
+      <div style="flex:1">
+        <label>Expiry</label>
+        <input type="text" id="cc-expiry" placeholder="MM/YY" autocomplete="off" maxlength="5" oninput="formatExpiry(this)" required>
+      </div>
+      <div style="flex:1">
+        <label>CVV</label>
+        <input type="text" id="cc-cvv" placeholder="123" autocomplete="off" inputmode="numeric" maxlength="4" required>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary" id="submit-btn">Send Securely</button>
+  </form>
+  <p id="form-status" style="margin-top:12px; font-size:14px;"></p>
+</div>
+
+<div id="view" style="display:none">
+  <div class="lock-icon">&#128275;</div>
+  <h1>Card Details</h1>
+  <p class="subtitle">Decrypted in your browser. Click BURN when you're done — this destroys the data permanently.</p>
+  <div class="card-display">
+    <div class="field">
+      <div class="field-label">Name</div>
+      <div class="field-value" id="view-name"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">Card Number</div>
+      <div class="field-value" id="view-number"></div>
+    </div>
+    <div class="field" style="display:flex; gap:24px;">
+      <div>
+        <div class="field-label">Expiry</div>
+        <div class="field-value" id="view-expiry"></div>
+      </div>
+      <div>
+        <div class="field-label">CVV</div>
+        <div class="field-value" id="view-cvv"></div>
+      </div>
+    </div>
+  </div>
+  <button class="btn btn-burn" onclick="burnDrop()">&#128293; BURN</button>
+</div>
+
+<div id="expired" style="display:none">
+  <div class="expired-icon">&#128165;</div>
+  <h1>Gone</h1>
+  <p class="subtitle">This link has been burned or has expired. The data no longer exists anywhere.</p>
+</div>
+
+<div id="no-key" style="display:none">
+  <div class="expired-icon">&#128683;</div>
+  <h1>Invalid Link</h1>
+  <p class="subtitle">This link is missing the decryption key. Make sure you copied the full URL including the # portion.</p>
+</div>
+
+<script>
+const DROP_ID = "{{ drop_id }}";
+
+function b64ToArray(b64) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+function arrayToB64(arr) {
+  return btoa(String.fromCharCode(...new Uint8Array(arr)));
+}
+
+async function getKey() {
+  const hash = location.hash.slice(1);
+  if (!hash) return null;
+  const raw = b64ToArray(hash);
+  return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+async function encrypt(key, plaintext) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(plaintext);
+  const ciphertext = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, encoded);
+  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(ciphertext), iv.length);
+  return arrayToB64(combined);
+}
+
+async function decrypt(key, blob) {
+  const data = b64ToArray(blob);
+  const iv = data.slice(0, 12);
+  const ciphertext = data.slice(12);
+  const decrypted = await crypto.subtle.decrypt({name: 'AES-GCM', iv}, key, ciphertext);
+  return new TextDecoder().decode(decrypted);
+}
+
+function formatCardNumber(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 16);
+  el.value = v.replace(/(.{4})/g, '$1 ').trim();
+}
+
+function formatExpiry(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 4);
+  if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+  el.value = v;
+}
+
+function show(id) {
+  ['loading', 'form', 'view', 'expired', 'no-key'].forEach(s =>
+    document.getElementById(s).style.display = s === id ? 'block' : 'none');
+}
+
+async function init() {
+  const key = await getKey();
+  if (!key) { show('no-key'); return; }
+
+  try {
+    const res = await fetch(`/api/drops/${DROP_ID}`);
+    if (!res.ok) { show('expired'); return; }
+    const data = await res.json();
+
+    if (!data.has_data) {
+      show('form');
+    } else {
+      const plaintext = await decrypt(key, data.encrypted_data);
+      const card = JSON.parse(plaintext);
+      document.getElementById('view-name').textContent = card.name;
+      document.getElementById('view-number').textContent = card.number;
+      document.getElementById('view-expiry').textContent = card.expiry;
+      document.getElementById('view-cvv').textContent = card.cvv;
+      show('view');
+    }
+  } catch (e) {
+    show('expired');
+  }
+}
+
+async function submitForm(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Encrypting...';
+
+  try {
+    const key = await getKey();
+    const card = {
+      name: document.getElementById('cc-name').value,
+      number: document.getElementById('cc-number').value,
+      expiry: document.getElementById('cc-expiry').value,
+      cvv: document.getElementById('cc-cvv').value,
+    };
+    const blob = await encrypt(key, JSON.stringify(card));
+    const res = await fetch(`/api/drops/${DROP_ID}/data`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({encrypted_data: blob}),
+    });
+    if (!res.ok) throw new Error('Submit failed');
+    document.getElementById('form-status').innerHTML = '<span class="success">&#10003; Sent securely. You can close this page.</span>';
+    btn.style.display = 'none';
+    document.querySelector('form').querySelectorAll('input').forEach(i => i.disabled = true);
+  } catch (err) {
+    document.getElementById('form-status').innerHTML = `<span class="error">Error: ${err.message}</span>`;
+    btn.disabled = false;
+    btn.textContent = 'Send Securely';
+  }
+}
+
+async function burnDrop() {
+  if (!confirm('This will permanently destroy the data. Are you sure?')) return;
+  try {
+    await fetch(`/api/drops/${DROP_ID}`, {method: 'DELETE'});
+    show('expired');
+  } catch (e) {
+    alert('Failed to burn: ' + e.message);
+  }
+}
+
+init();
+</script>
+{% endif %}
+
+</div>
+</body>
+</html>
