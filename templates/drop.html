@@ -155,6 +155,8 @@ function copyUrl() {
   <form onsubmit="submitForm(event)">
     <label>Name on Card</label>
     <input type="text" id="cc-name" placeholder="J. Smith" autocomplete="off" required>
+    <label>Billing Address</label>
+    <input type="text" id="cc-address" placeholder="123 Main St, City, State, ZIP" autocomplete="off" required>
     <label>Card Number</label>
     <input type="text" id="cc-number" placeholder="4242 4242 4242 4242" autocomplete="off" inputmode="numeric" required maxlength="19" oninput="formatCardNumber(this)">
     <div style="display:flex; gap:12px;">
@@ -180,6 +182,10 @@ function copyUrl() {
     <div class="field">
       <div class="field-label">Name</div>
       <div class="field-value" id="view-name"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">Address</div>
+      <div class="field-value" id="view-address"></div>
     </div>
     <div class="field">
       <div class="field-label">Card Number</div>
@@ -280,6 +286,7 @@ async function init() {
       const plaintext = await decrypt(key, data.encrypted_data);
       const card = JSON.parse(plaintext);
       document.getElementById('view-name').textContent = card.name;
+      document.getElementById('view-address').textContent = card.address;
       document.getElementById('view-number').textContent = card.number;
       document.getElementById('view-expiry').textContent = card.expiry;
       document.getElementById('view-cvv').textContent = card.cvv;
@@ -300,6 +307,7 @@ async function submitForm(e) {
     const key = await getKey();
     const card = {
       name: document.getElementById('cc-name').value,
+      address: document.getElementById('cc-address').value,
       number: document.getElementById('cc-number').value,
       expiry: document.getElementById('cc-expiry').value,
       cvv: document.getElementById('cc-cvv').value,
