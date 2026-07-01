@@ -1,0 +1,6 @@
+.vercel
+.env*.local
+__pycache__/
+.playwright-cli/
+supabase/.temp/
+.DS_Store
