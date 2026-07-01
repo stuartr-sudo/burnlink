@@ -5,7 +5,7 @@ High-end artist paint brush ecommerce site with a compact FastAPI storefront, ge
 ## What Is Included
 
 - Storefront at `/` with product catalogue, cart, order reservation, newsletter signup and customer message capture.
-- Dashboard at `/dashboard` for sales, inventory, suppliers, customer communications and email sequences.
+- Password-protected dashboard at `/dashboard` for sales, inventory, suppliers, customer communications and email sequences.
 - Supabase migration at `supabase/migrations/20260630001241_brush_house_schema.sql`.
 - Local Fal-generated image assets under `static/generated/`.
 - Vercel Python entrypoint through `app.py`.
@@ -31,6 +31,8 @@ ADMIN_PASSWORD=choose-a-long-password
 ```
 
 Keep `SUPABASE_SERVICE_ROLE_KEY` server-side only. Do not expose it with a `NEXT_PUBLIC_` style variable or in browser JavaScript.
+
+`ADMIN_PASSWORD` is required for `/dashboard` and `/api/dashboard`. If it is not set, those admin routes fail closed instead of exposing dashboard data.
 
 ## Supabase
 

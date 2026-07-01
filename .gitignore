@@ -4,3 +4,4 @@ __pycache__/
 .playwright-cli/
 supabase/.temp/
 .DS_Store
+.dashboard-admin-credentials.txt

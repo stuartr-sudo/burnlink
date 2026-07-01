@@ -25,7 +25,7 @@ templates = Jinja2Templates(directory="templates")
 security = HTTPBasic(auto_error=False)
 
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "atelier")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -631,12 +631,15 @@ repo = CommerceRepository()
 
 def require_admin(credentials: HTTPBasicCredentials | None = Depends(security)) -> bool:
     if not ADMIN_PASSWORD:
-        return True
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Admin password is not configured.",
+        )
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin authentication required.",
-            headers={"WWW-Authenticate": "Basic"},
+            headers={"WWW-Authenticate": 'Basic realm="Atelier Bristle Admin"'},
         )
     username_ok = hmac.compare_digest(credentials.username, ADMIN_USERNAME)
     password_ok = hmac.compare_digest(credentials.password, ADMIN_PASSWORD)
@@ -644,7 +647,7 @@ def require_admin(credentials: HTTPBasicCredentials | None = Depends(security)) 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid admin credentials.",
-            headers={"WWW-Authenticate": "Basic"},
+            headers={"WWW-Authenticate": 'Basic realm="Atelier Bristle Admin"'},
         )
     return True
 
