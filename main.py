@@ -3,18 +3,22 @@ import os
 import secrets
 import time
 from pathlib import Path
+from typing import Optional
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 STORE_FILE = DATA_DIR / "drops.json"
-EXPIRY_SECONDS = 86400  # 24 hours
+DEFAULT_TTL_HOURS = 24
+MAX_TTL_HOURS = 24 * 7
+KINDS = {"card", "stripe"}
 
 
 def load_drops() -> dict:
@@ -28,18 +32,30 @@ def save_drops(drops: dict):
     STORE_FILE.write_text(json.dumps(drops))
 
 
+def expires_at(drop: dict) -> float:
+    return drop.get("expires_at") or drop["created_at"] + DEFAULT_TTL_HOURS * 3600
+
+
 def cleanup_expired():
     drops = load_drops()
     now = time.time()
-    expired = [k for k, v in drops.items() if now - v["created_at"] > EXPIRY_SECONDS]
+    expired = [k for k, v in drops.items() if now > expires_at(v)]
     if expired:
         for k in expired:
             del drops[k]
         save_drops(drops)
 
 
+class CreateDrop(BaseModel):
+    kind: str = "card"
+    # Creator-side settings (webhook URL, events, mode), encrypted in the
+    # browser with the link key. The server only ever stores ciphertext.
+    config: Optional[str] = Field(default=None, max_length=20000)
+    ttl_hours: int = Field(default=DEFAULT_TTL_HOURS, ge=1, le=MAX_TTL_HOURS)
+
+
 class EncryptedPayload(BaseModel):
-    encrypted_data: str
+    encrypted_data: str = Field(max_length=50000)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -48,13 +64,23 @@ async def landing(request: Request):
 
 
 @app.post("/api/drops")
-async def create_drop():
+async def create_drop(body: Optional[CreateDrop] = None):
+    body = body or CreateDrop()
+    if body.kind not in KINDS:
+        raise HTTPException(status_code=400, detail="Unknown drop kind")
     cleanup_expired()
     drops = load_drops()
     drop_id = secrets.token_urlsafe(16)
-    drops[drop_id] = {"encrypted_data": None, "created_at": time.time()}
+    now = time.time()
+    drops[drop_id] = {
+        "encrypted_data": None,
+        "created_at": now,
+        "expires_at": now + body.ttl_hours * 3600,
+        "kind": body.kind,
+        "config": body.config,
+    }
     save_drops(drops)
-    return {"id": drop_id}
+    return {"id": drop_id, "expires_at": drops[drop_id]["expires_at"]}
 
 
 @app.get("/drop/{drop_id}", response_class=HTMLResponse)
@@ -72,6 +98,9 @@ async def get_drop(drop_id: str):
     return {
         "has_data": drop["encrypted_data"] is not None,
         "encrypted_data": drop["encrypted_data"],
+        "kind": drop.get("kind", "card"),
+        "config": drop.get("config"),
+        "expires_at": expires_at(drop),
     }
 
 

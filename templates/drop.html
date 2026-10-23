@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <title>BurnLink</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12,7 +13,7 @@
     color: #e0e0e0;
     min-height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     padding: 20px;
   }
@@ -21,27 +22,16 @@
     border: 1px solid #333;
     border-radius: 12px;
     padding: 40px;
-    max-width: 480px;
+    max-width: 620px;
     width: 100%;
+    margin: 20px auto;
   }
-  h1 {
-    font-size: 24px;
-    margin-bottom: 8px;
-    color: #fff;
-  }
-  .subtitle {
-    color: #888;
-    font-size: 14px;
-    margin-bottom: 32px;
-  }
-  label {
-    display: block;
-    font-size: 13px;
-    color: #aaa;
-    margin-bottom: 6px;
-    margin-top: 16px;
-  }
-  input {
+  @media (max-width: 480px) { .container { padding: 24px 18px; } }
+  h1 { font-size: 24px; margin-bottom: 8px; color: #fff; }
+  h2 { font-size: 16px; color: #fff; margin: 0 0 12px; }
+  .subtitle { color: #888; font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+  label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; margin-top: 16px; }
+  input, select, textarea {
     width: 100%;
     padding: 12px;
     background: #111;
@@ -50,9 +40,14 @@
     color: #fff;
     font-size: 16px;
     outline: none;
+    font-family: inherit;
   }
-  input:focus { border-color: #555; }
-  input::placeholder { color: #555; }
+  input:focus, select:focus, textarea:focus { border-color: #555; }
+  input::placeholder, textarea::placeholder { color: #555; }
+  input.mono, textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+  input.bad { border-color: #dc2626; }
+  textarea { min-height: 72px; resize: vertical; }
+  .hint { color: #777; font-size: 12px; margin-top: 6px; line-height: 1.4; }
   .btn {
     display: inline-block;
     padding: 14px 28px;
@@ -70,45 +65,163 @@
   .btn-primary { background: #2563eb; color: #fff; }
   .btn-burn { background: #dc2626; color: #fff; }
   .btn-copy { background: #333; color: #fff; margin-top: 12px; }
+  .btn-small { width: auto; padding: 6px 12px; font-size: 12px; margin: 0; background: #333; color: #fff; white-space: nowrap; }
   .url-box {
     background: #111;
     border: 1px solid #333;
     border-radius: 8px;
     padding: 14px;
     word-break: break-all;
-    font-family: monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 13px;
     color: #4ade80;
     margin-top: 16px;
     user-select: all;
   }
-  .card-display {
-    background: #111;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 16px;
-  }
+  .card-display { background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; margin-top: 16px; }
   .card-display .field { margin-bottom: 12px; }
   .card-display .field-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-  .card-display .field-value { font-size: 18px; color: #fff; font-family: monospace; margin-top: 4px; }
+  .card-display .field-value { font-size: 18px; color: #fff; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 4px; }
   .success { color: #4ade80; }
   .error { color: #f87171; }
   .expired-icon { font-size: 48px; text-align: center; margin-bottom: 16px; }
-  #view { display: none; }
   .lock-icon { font-size: 32px; margin-bottom: 12px; }
+
+  /* request type chooser */
+  .choice { display: flex; gap: 10px; margin-top: 8px; }
+  .choice label { flex: 1; margin: 0; display: flex; gap: 10px; align-items: flex-start; border: 1px solid #333; border-radius: 8px; padding: 12px; cursor: pointer; color: #ddd; font-size: 14px; line-height: 1.4; }
+  .choice label:has(input:checked) { border-color: #2563eb; background: #14203a; }
+  .choice input { width: auto; margin-top: 3px; }
+  .choice small { display: block; color: #888; font-size: 12px; }
+
+  /* step-by-step guide */
+  .steps { counter-reset: step; margin: 8px 0 0; }
+  .step { position: relative; padding-left: 38px; margin-bottom: 18px; font-size: 14px; color: #ccc; line-height: 1.55; }
+  .step::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 1px; width: 26px; height: 26px; border-radius: 50%;
+    background: #2563eb; color: #fff; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step h3 { font-size: 14px; color: #fff; margin-bottom: 4px; }
+  .step ul { margin: 6px 0 0 18px; }
+  .step li { margin-bottom: 4px; }
+  .step a, .subtitle a, .note a { color: #7cb7ff; }
+  .step b { color: #fff; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+  code { background: #111; border: 1px solid #333; border-radius: 4px; padding: 1px 5px; color: #f0f0f0; }
+  .chip { display: inline-block; background: #111; border: 1px solid #333; border-radius: 4px; padding: 2px 7px; margin: 2px 2px 2px 0; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #e0e0e0; }
+  .copyrow { display: flex; gap: 8px; align-items: center; background: #111; border: 1px solid #333; border-radius: 6px; padding: 8px 10px; margin: 6px 0; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: #4ade80; }
+  .copyrow span { flex: 1; }
+  .warn { background: #2a1f10; border: 1px solid #6b4a1a; color: #f0c88a; padding: 10px 12px; border-radius: 6px; font-size: 13px; margin: 10px 0; line-height: 1.5; }
+  .note { background: #111; border: 1px solid #333; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #bbb; line-height: 1.5; margin: 16px 0; }
+  .group { border: 1px solid #333; border-radius: 10px; padding: 18px; margin-top: 18px; }
+  .group h2 { font-size: 15px; }
+  .group label:first-of-type { margin-top: 0; }
+  .env { background: #0f0f0f; border: 1px solid #333; border-radius: 6px; padding: 12px; white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: #e0e0e0; margin-top: 12px; }
+  details { border: 1px solid #333; border-radius: 10px; padding: 14px 18px; margin: 18px 0; }
+  details summary { cursor: pointer; color: #fff; font-size: 15px; font-weight: 600; }
+  details[open] summary { margin-bottom: 14px; }
+  .checklist { list-style: none; margin: 12px 0 0; }
+  .checklist li { padding: 6px 0 6px 26px; position: relative; font-size: 14px; color: #ddd; }
+  .checklist li::before { content: "\2610"; position: absolute; left: 0; color: #7cb7ff; }
+  .meta { color: #666; font-size: 12px; margin-top: 16px; }
 </style>
 </head>
 <body>
 <div class="container">
+
+<script>
+// ---- shared crypto helpers (AES-GCM, key lives only in the URL fragment) ----
+function b64ToArray(b64) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+function arrayToB64(arr) {
+  return btoa(String.fromCharCode(...new Uint8Array(arr)));
+}
+async function encrypt(key, plaintext) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoded = new TextEncoder().encode(plaintext);
+  const ciphertext = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, encoded);
+  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(ciphertext), iv.length);
+  return arrayToB64(combined);
+}
+async function decrypt(key, blob) {
+  const data = b64ToArray(blob);
+  const iv = data.slice(0, 12);
+  const ciphertext = data.slice(12);
+  const decrypted = await crypto.subtle.decrypt({name: 'AES-GCM', iv}, key, ciphertext);
+  return new TextDecoder().decode(decrypted);
+}
+async function copyText(text, el) {
+  try {
+    await navigator.clipboard.writeText(text);
+    if (el) { const old = el.textContent; el.textContent = 'Copied'; setTimeout(() => el.textContent = old, 1500); }
+  } catch (e) { alert('Copy failed — select the text and copy it manually.'); }
+}
+function fmtExpiry(ts) {
+  return ts ? new Date(ts * 1000).toLocaleString() : '';
+}
+</script>
 
 {% if mode == "landing" %}
 <!-- LANDING: Create a new drop -->
 <div id="landing">
   <div class="lock-icon">&#128274;</div>
   <h1>BurnLink</h1>
-  <p class="subtitle">Create a secure, one-time link for sharing sensitive details. End-to-end encrypted — the server never sees your data.</p>
-  <button class="btn btn-primary" onclick="createDrop()">Create Secure Drop</button>
+  <p class="subtitle">Create a secure, one-time link for collecting sensitive details. End-to-end encrypted — the server never sees the data.</p>
+
+  <label>What are you requesting?</label>
+  <div class="choice">
+    <label><input type="radio" name="kind" value="card" checked onchange="kindChanged()"><span>Card details<small>Name, address, card number, expiry, CVV</small></span></label>
+    <label><input type="radio" name="kind" value="stripe" onchange="kindChanged()"><span>Stripe keys + webhook<small>Publishable key, secret key, webhook signing secret — with step-by-step instructions on the page</small></span></label>
+  </div>
+
+  <div id="stripe-options" style="display:none">
+    <label>Who is asking (shown to the recipient)</label>
+    <input type="text" id="opt-from" placeholder="e.g. 7Lens" autocomplete="off">
+
+    <label>Which keys</label>
+    <select id="opt-mode">
+      <option value="live">Live keys only</option>
+      <option value="test">Sandbox (test) keys only</option>
+      <option value="both">Both live and sandbox keys</option>
+    </select>
+
+    <label>Webhook endpoint URL they should add in Stripe</label>
+    <input type="url" id="opt-webhook" class="mono" placeholder="https://your-app.example.com/api/stripe/webhook" autocomplete="off" spellcheck="false">
+    <p class="hint">Leave blank if you will create the webhook yourself later; the page then skips the webhook step.</p>
+
+    <label>Events the webhook should listen for</label>
+    <textarea id="opt-events" class="mono" spellcheck="false">checkout.session.completed
+payment_intent.succeeded
+payment_intent.payment_failed
+invoice.paid
+invoice.payment_failed
+customer.subscription.created
+customer.subscription.updated
+customer.subscription.deleted</textarea>
+    <p class="hint">One per line. Shown to the recipient when they create the webhook.</p>
+
+    <label>Anything else they should know (optional)</label>
+    <textarea id="opt-note" placeholder="e.g. We only need these for the new booking site; nothing else changes."></textarea>
+  </div>
+
+  <label>Link expires after</label>
+  <select id="opt-ttl">
+    <option value="24">24 hours</option>
+    <option value="72">3 days</option>
+    <option value="168">7 days</option>
+  </select>
+  <p class="hint">Unused or unread links are deleted automatically at this point. Read data is deleted the moment you click BURN.</p>
+
+  <button class="btn btn-primary" id="create-btn" onclick="createDrop()">Create Secure Link</button>
+  <p id="create-status" style="margin-top:12px; font-size:14px;"></p>
 </div>
 <div id="created" style="display:none">
   <div class="lock-icon">&#9989;</div>
@@ -117,21 +230,60 @@
   <div class="url-box" id="drop-url"></div>
   <button class="btn btn-copy" onclick="copyUrl()">Copy Link</button>
   <p id="copy-status" style="margin-top:8px; font-size:13px;"></p>
+  <p class="meta" id="created-meta"></p>
 </div>
 
 <script>
+function kindChanged() {
+  const kind = document.querySelector('input[name=kind]:checked').value;
+  document.getElementById('stripe-options').style.display = kind === 'stripe' ? 'block' : 'none';
+}
+
 async function createDrop() {
-  const key = await crypto.subtle.generateKey({name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt']);
-  const exported = await crypto.subtle.exportKey('raw', key);
-  const keyB64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
+  const btn = document.getElementById('create-btn');
+  const status = document.getElementById('create-status');
+  btn.disabled = true;
+  status.textContent = '';
+  try {
+    const kind = document.querySelector('input[name=kind]:checked').value;
+    const ttl = parseInt(document.getElementById('opt-ttl').value, 10);
 
-  const res = await fetch('/api/drops', {method: 'POST'});
-  const {id} = await res.json();
+    const key = await crypto.subtle.generateKey({name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt']);
+    const exported = await crypto.subtle.exportKey('raw', key);
+    const keyB64 = arrayToB64(exported);
 
-  const url = `${location.origin}/drop/${id}#${keyB64}`;
-  document.getElementById('landing').style.display = 'none';
-  document.getElementById('created').style.display = 'block';
-  document.getElementById('drop-url').textContent = url;
+    let config = null;
+    if (kind === 'stripe') {
+      const cfg = {
+        from: document.getElementById('opt-from').value.trim(),
+        mode: document.getElementById('opt-mode').value,
+        webhook_url: document.getElementById('opt-webhook').value.trim(),
+        events: document.getElementById('opt-events').value.split('\n').map(s => s.trim()).filter(Boolean),
+        note: document.getElementById('opt-note').value.trim(),
+      };
+      if (cfg.webhook_url && !/^https:\/\//.test(cfg.webhook_url)) {
+        throw new Error('Webhook endpoint URL must start with https://');
+      }
+      config = await encrypt(key, JSON.stringify(cfg));
+    }
+
+    const res = await fetch('/api/drops', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({kind, config, ttl_hours: ttl}),
+    });
+    if (!res.ok) throw new Error('Server refused to create the link');
+    const {id, expires_at} = await res.json();
+
+    const url = `${location.origin}/drop/${id}#${keyB64}`;
+    document.getElementById('landing').style.display = 'none';
+    document.getElementById('created').style.display = 'block';
+    document.getElementById('drop-url').textContent = url;
+    document.getElementById('created-meta').textContent = `Expires ${fmtExpiry(expires_at)} if unused. Open the link yourself to preview exactly what the recipient will see — it only locks once they submit.`;
+  } catch (err) {
+    status.innerHTML = `<span class="error">Error: ${err.message}</span>`;
+    btn.disabled = false;
+  }
 }
 
 function copyUrl() {
@@ -148,11 +300,12 @@ function copyUrl() {
   <h1>Loading...</h1>
 </div>
 
-<div id="form" style="display:none">
+<!-- ---------- CARD DETAILS: form ---------- -->
+<div id="form-card" style="display:none">
   <div class="lock-icon">&#128274;</div>
   <h1>Secure Form</h1>
   <p class="subtitle">Your details will be encrypted in your browser before being sent. The server never sees the plaintext.</p>
-  <form onsubmit="submitForm(event)">
+  <form onsubmit="submitCard(event)">
     <label>Name on Card</label>
     <input type="text" id="cc-name" placeholder="J. Smith" autocomplete="off" required>
     <label>Billing Address</label>
@@ -169,39 +322,62 @@ function copyUrl() {
         <input type="text" id="cc-cvv" placeholder="123" autocomplete="off" inputmode="numeric" maxlength="4" required>
       </div>
     </div>
-    <button type="submit" class="btn btn-primary" id="submit-btn">Send Securely</button>
+    <button type="submit" class="btn btn-primary" id="submit-card-btn">Send Securely</button>
   </form>
-  <p id="form-status" style="margin-top:12px; font-size:14px;"></p>
+  <p id="form-card-status" style="margin-top:12px; font-size:14px;"></p>
 </div>
 
-<div id="view" style="display:none">
+<!-- ---------- CARD DETAILS: view ---------- -->
+<div id="view-card" style="display:none">
   <div class="lock-icon">&#128275;</div>
   <h1>Card Details</h1>
   <p class="subtitle">Decrypted in your browser. Click BURN when you're done — this destroys the data permanently.</p>
   <div class="card-display">
-    <div class="field">
-      <div class="field-label">Name</div>
-      <div class="field-value" id="view-name"></div>
-    </div>
-    <div class="field">
-      <div class="field-label">Address</div>
-      <div class="field-value" id="view-address"></div>
-    </div>
-    <div class="field">
-      <div class="field-label">Card Number</div>
-      <div class="field-value" id="view-number"></div>
-    </div>
+    <div class="field"><div class="field-label">Name</div><div class="field-value" id="view-name"></div></div>
+    <div class="field"><div class="field-label">Address</div><div class="field-value" id="view-address"></div></div>
+    <div class="field"><div class="field-label">Card Number</div><div class="field-value" id="view-number"></div></div>
     <div class="field" style="display:flex; gap:24px;">
-      <div>
-        <div class="field-label">Expiry</div>
-        <div class="field-value" id="view-expiry"></div>
-      </div>
-      <div>
-        <div class="field-label">CVV</div>
-        <div class="field-value" id="view-cvv"></div>
-      </div>
+      <div><div class="field-label">Expiry</div><div class="field-value" id="view-expiry"></div></div>
+      <div><div class="field-label">CVV</div><div class="field-value" id="view-cvv"></div></div>
     </div>
   </div>
+  <button class="btn btn-burn" onclick="burnDrop()">&#128293; BURN</button>
+</div>
+
+<!-- ---------- STRIPE KEYS: form ---------- -->
+<div id="form-stripe" style="display:none">
+  <div class="lock-icon">&#128274;</div>
+  <h1 id="st-title">Stripe keys</h1>
+  <p class="subtitle"><span id="st-intro"></span> Everything you paste here is encrypted in your browser before it is sent. The server never sees the keys, and the link self-destructs after it is read.</p>
+
+  <div class="note" id="st-note" style="display:none"></div>
+
+  <h2>What we need</h2>
+  <ul class="checklist" id="st-checklist"></ul>
+
+  <details open>
+    <summary>How to find them in Stripe — step by step</summary>
+    <div class="steps" id="st-steps"></div>
+  </details>
+
+  <form onsubmit="submitStripe(event)" id="st-form">
+    <label>Business name on the Stripe account (optional)</label>
+    <input type="text" id="st-business" placeholder="As shown top-left in the Stripe Dashboard" autocomplete="off">
+    <div id="st-groups"></div>
+    <label>Notes for us (optional)</label>
+    <textarea id="st-notes" placeholder="e.g. Keys are from our main account, not the sandbox."></textarea>
+    <button type="submit" class="btn btn-primary" id="submit-stripe-btn">Send Securely</button>
+  </form>
+  <p id="form-stripe-status" style="margin-top:12px; font-size:14px;"></p>
+  <p class="meta" id="st-expiry"></p>
+</div>
+
+<!-- ---------- STRIPE KEYS: view ---------- -->
+<div id="view-stripe" style="display:none">
+  <div class="lock-icon">&#128275;</div>
+  <h1>Stripe keys received</h1>
+  <p class="subtitle">Decrypted in your browser. Copy them into your secrets store now, then click BURN — this destroys the data permanently.</p>
+  <div id="vs-body"></div>
   <button class="btn btn-burn" onclick="burnDrop()">&#128293; BURN</button>
 </div>
 
@@ -219,16 +395,12 @@ function copyUrl() {
 
 <script>
 const DROP_ID = "{{ drop_id }}";
-
-function b64ToArray(b64) {
-  const bin = atob(b64);
-  const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  return arr;
-}
-function arrayToB64(arr) {
-  return btoa(String.fromCharCode(...new Uint8Array(arr)));
-}
+const PANELS = ['loading', 'form-card', 'view-card', 'form-stripe', 'view-stripe', 'expired', 'no-key'];
+const MODES = {
+  live: { label: 'Live', pk: 'pk_live_', sk: 'sk_live_', rk: 'rk_live_', switchTo: 'Live mode' },
+  test: { label: 'Sandbox (test)', pk: 'pk_test_', sk: 'sk_test_', rk: 'rk_test_', switchTo: 'a Sandbox (test mode)' },
+};
+let CONFIG = { from: '', mode: 'live', webhook_url: '', events: [], note: '' };
 
 async function getKey() {
   const hash = location.hash.slice(1);
@@ -237,29 +409,10 @@ async function getKey() {
   return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
-async function encrypt(key, plaintext) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encoded = new TextEncoder().encode(plaintext);
-  const ciphertext = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, encoded);
-  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-  combined.set(iv);
-  combined.set(new Uint8Array(ciphertext), iv.length);
-  return arrayToB64(combined);
-}
-
-async function decrypt(key, blob) {
-  const data = b64ToArray(blob);
-  const iv = data.slice(0, 12);
-  const ciphertext = data.slice(12);
-  const decrypted = await crypto.subtle.decrypt({name: 'AES-GCM', iv}, key, ciphertext);
-  return new TextDecoder().decode(decrypted);
-}
-
 function formatCardNumber(el) {
   let v = el.value.replace(/\D/g, '').slice(0, 16);
   el.value = v.replace(/(.{4})/g, '$1 ').trim();
 }
-
 function formatExpiry(el) {
   let v = el.value.replace(/\D/g, '').slice(0, 4);
   if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
@@ -267,8 +420,213 @@ function formatExpiry(el) {
 }
 
 function show(id) {
-  ['loading', 'form', 'view', 'expired', 'no-key'].forEach(s =>
-    document.getElementById(s).style.display = s === id ? 'block' : 'none');
+  PANELS.forEach(s => document.getElementById(s).style.display = s === id ? 'block' : 'none');
+}
+
+// small DOM builder: h('tag', {attrs}, ...children) — everything is textContent, never innerHTML with data
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') el.className = v;
+    else if (k === 'onclick') el.onclick = v;
+    else el.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null) continue;
+    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return el;
+}
+function link(href, text) { return h('a', {href, target: '_blank', rel: 'noopener'}, text || href); }
+function copyRow(text) {
+  const span = h('span', {}, text);
+  const btn = h('button', {type: 'button', class: 'btn btn-small', onclick: (e) => copyText(text, e.target)}, 'Copy');
+  return h('div', {class: 'copyrow'}, span, btn);
+}
+
+function modeList() {
+  return CONFIG.mode === 'both' ? ['live', 'test'] : [CONFIG.mode === 'test' ? 'test' : 'live'];
+}
+
+function renderStripeForm(expiresAt) {
+  const from = CONFIG.from || 'Your developer';
+  const modes = modeList();
+  const wantWebhook = !!CONFIG.webhook_url;
+
+  document.getElementById('st-title').textContent = `Stripe keys for ${from}`;
+  document.getElementById('st-intro').textContent = `${from} needs the Stripe keys below to connect your Stripe account.`;
+
+  if (CONFIG.note) {
+    const n = document.getElementById('st-note');
+    n.textContent = CONFIG.note;
+    n.style.display = 'block';
+  }
+
+  // checklist
+  const cl = document.getElementById('st-checklist');
+  cl.replaceChildren();
+  for (const m of modes) {
+    const M = MODES[m];
+    cl.append(
+      h('li', {}, `${M.label} publishable key `, h('code', {}, M.pk + '…')),
+      h('li', {}, `${M.label} secret key `, h('code', {}, M.sk + '…'), ' (or a restricted key ', h('code', {}, M.rk + '…'), ')'),
+    );
+    if (wantWebhook) cl.append(h('li', {}, `${M.label} webhook signing secret `, h('code', {}, 'whsec_…'), ' for the endpoint below'));
+  }
+
+  // steps
+  const steps = document.getElementById('st-steps');
+  steps.replaceChildren();
+  const modeText = modes.length === 2
+    ? 'You will do this twice: once in Live mode and once in a Sandbox (test mode). Use the mode switch at the top of the Dashboard.'
+    : `Make sure the Dashboard is in ${MODES[modes[0]].switchTo}. The switch is at the top of the page${modes[0] === 'live' ? ' — if it says “Sandbox” or “Test mode”, switch it off' : ''}.`;
+
+  steps.append(
+    h('div', {class: 'step'},
+      h('h3', {}, 'Sign in to Stripe as an administrator'),
+      'Open ', link('https://dashboard.stripe.com/', 'dashboard.stripe.com'), ' and sign in. You need the ', h('b', {}, 'Administrator'), ' (owner) role to see secret keys; if the key section is hidden, ask the account owner to do these steps. ',
+      modeText
+    ),
+    h('div', {class: 'step'},
+      h('h3', {}, 'Copy the publishable key'),
+      'Open ', link('https://dashboard.stripe.com/apikeys', 'dashboard.stripe.com/apikeys'), ' (Developers → API keys). Under ', h('b', {}, 'Standard keys'), ', click the ', h('b', {}, 'Publishable key'), ' to copy it. It starts with ', h('code', {}, modes.includes('live') ? 'pk_live_' : 'pk_test_'), ' and is safe to share.'
+    ),
+    h('div', {class: 'step'},
+      h('h3', {}, 'Reveal or create the secret key'),
+      'On the same page, under ', h('b', {}, 'Standard keys'), ' → ', h('b', {}, 'Secret key'), ', click ', h('b', {}, 'Reveal live key'), ' (or ', h('b', {}, 'Reveal test key'), '), then click the key to copy it.',
+      h('ul', {},
+        h('li', {}, 'No Reveal button? Stripe only shows manually created live keys once. Click ', h('b', {}, 'Create secret key'), ' (top right), enter the verification code Stripe emails or texts you, name it ', h('code', {}, from), ', click ', h('b', {}, 'Create'), ' and copy the key straight away — it will not be shown again.'),
+        h('li', {}, 'Do ', h('b', {}, 'not'), ' click Rotate or Expire on an existing key: that breaks anything already using it.'),
+        h('li', {}, 'Prefer a restricted key? ', h('b', {}, 'Create restricted key'), ' works too; it starts with ', h('code', {}, 'rk_'), ' and is accepted below.'),
+      )
+    ),
+  );
+
+  if (wantWebhook) {
+    const eventsEl = h('div', {}, ...(CONFIG.events.length ? CONFIG.events.map(ev => h('span', {class: 'chip'}, ev)) : [h('i', {}, 'the events your developer listed')]));
+    steps.append(
+      h('div', {class: 'step'},
+        h('h3', {}, 'Create the webhook and copy its signing secret'),
+        'Open ', link('https://dashboard.stripe.com/webhooks', 'dashboard.stripe.com/webhooks'), ' (Workbench → Webhooks) and click ', h('b', {}, 'Create an event destination'), ' (older dashboards: ', h('b', {}, 'Add endpoint'), '). Then:',
+        h('ul', {},
+          h('li', {}, 'Events from: ', h('b', {}, 'Your account'), '. Payload: ', h('b', {}, 'Snapshot'), ' (leave the API version as suggested).'),
+          h('li', {}, 'Select these events, then Continue:', h('div', {}, eventsEl)),
+          h('li', {}, 'Destination type: ', h('b', {}, 'Webhook endpoint'), ' → Continue.'),
+          h('li', {}, 'Endpoint URL — paste exactly:', copyRow(CONFIG.webhook_url), 'Description: ', h('code', {}, from), '. Click ', h('b', {}, 'Create destination'), '.'),
+          h('li', {}, 'On the destination page find ', h('b', {}, 'Signing secret'), ', click ', h('b', {}, 'Reveal'), ' and copy the value starting ', h('code', {}, 'whsec_'), '.'),
+          h('li', {}, 'If a webhook for this exact URL already exists, open it and reveal its secret instead of creating a second one.'),
+        )
+      )
+    );
+  }
+
+  steps.append(
+    h('div', {class: 'step'},
+      h('h3', {}, 'Paste everything below and send'),
+      'Paste each value into the matching box, click ', h('b', {}, 'Send Securely'), ', then close this tab. Nothing is kept in your browser. If you make a mistake after sending, ask ', from, ' for a fresh link.'
+    )
+  );
+
+  // input groups
+  const groups = document.getElementById('st-groups');
+  groups.replaceChildren();
+  for (const m of modes) {
+    const M = MODES[m];
+    const g = h('div', {class: 'group'}, h('h2', {}, `${M.label} keys`));
+    g.append(
+      h('label', {}, `Publishable key (${M.pk}…)`),
+      h('input', {type: 'text', id: `in-${m}-pk`, class: 'mono', placeholder: M.pk + '…', autocomplete: 'off', spellcheck: 'false', required: ''}),
+      h('label', {}, `Secret key (${M.sk}…) or restricted key (${M.rk}…)`),
+      h('input', {type: 'text', id: `in-${m}-sk`, class: 'mono', placeholder: M.sk + '…', autocomplete: 'off', spellcheck: 'false', required: ''}),
+    );
+    if (wantWebhook) {
+      g.append(
+        h('label', {}, 'Webhook signing secret (whsec_…)'),
+        h('input', {type: 'text', id: `in-${m}-wh`, class: 'mono', placeholder: 'whsec_…', autocomplete: 'off', spellcheck: 'false', required: ''}),
+      );
+    }
+    groups.append(g);
+  }
+
+  document.getElementById('st-expiry').textContent = expiresAt ? `This link expires ${fmtExpiry(expiresAt)}.` : '';
+}
+
+function checkField(id, re, what) {
+  const el = document.getElementById(id);
+  const v = el.value.trim();
+  el.value = v;
+  if (!re.test(v)) {
+    el.classList.add('bad');
+    el.focus();
+    throw new Error(`${what} doesn't look right — check the prefix and that you copied the whole value.`);
+  }
+  el.classList.remove('bad');
+  return v;
+}
+
+async function submitStripe(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-stripe-btn');
+  const status = document.getElementById('form-stripe-status');
+  status.textContent = '';
+  try {
+    const payload = {
+      business: document.getElementById('st-business').value.trim(),
+      notes: document.getElementById('st-notes').value.trim(),
+      webhook_url: CONFIG.webhook_url,
+      keys: {},
+    };
+    for (const m of modeList()) {
+      const M = MODES[m];
+      const k = {
+        publishable: checkField(`in-${m}-pk`, new RegExp(`^${M.pk}[A-Za-z0-9]+$`), `${M.label} publishable key`),
+        secret: checkField(`in-${m}-sk`, new RegExp(`^(sk|rk)_${m}_[A-Za-z0-9]+$`), `${M.label} secret key`),
+      };
+      if (CONFIG.webhook_url) k.webhook_secret = checkField(`in-${m}-wh`, /^whsec_[A-Za-z0-9]+$/, `${M.label} webhook signing secret`);
+      payload.keys[m] = k;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Encrypting...';
+    const key = await getKey();
+    const blob = await encrypt(key, JSON.stringify({type: 'stripe', ...payload}));
+    const res = await fetch(`/api/drops/${DROP_ID}/data`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({encrypted_data: blob}),
+    });
+    if (res.status === 409) throw new Error('Details were already sent on this link.');
+    if (!res.ok) throw new Error('Submit failed — the link may have expired.');
+    status.innerHTML = '<span class="success">&#10003; Sent securely. You can close this page.</span>';
+    btn.style.display = 'none';
+    document.querySelectorAll('#st-form input, #st-form textarea').forEach(i => i.disabled = true);
+  } catch (err) {
+    status.innerHTML = `<span class="error">${err.message}</span>`;
+    btn.disabled = false;
+    btn.textContent = 'Send Securely';
+  }
+}
+
+function renderStripeView(data) {
+  const body = document.getElementById('vs-body');
+  body.replaceChildren();
+  if (data.business) body.append(h('p', {class: 'subtitle'}, 'Stripe account: ', h('b', {}, data.business)));
+  for (const [m, k] of Object.entries(data.keys || {})) {
+    const M = MODES[m] || {label: m};
+    const g = h('div', {class: 'group'}, h('h2', {}, `${M.label} keys`));
+    g.append(h('div', {class: 'field-label'}, 'Publishable key'), copyRow(k.publishable));
+    g.append(h('div', {class: 'field-label'}, 'Secret / restricted key'), copyRow(k.secret));
+    if (k.webhook_secret) g.append(h('div', {class: 'field-label'}, 'Webhook signing secret'), copyRow(k.webhook_secret));
+    const envLines = [
+      `# Stripe ${M.label.toLowerCase()} keys${data.webhook_url ? ' — webhook ' + data.webhook_url : ''}`,
+      `STRIPE_PUBLISHABLE_KEY=${k.publishable}`,
+      `STRIPE_SECRET_KEY=${k.secret}`,
+    ];
+    if (k.webhook_secret) envLines.push(`STRIPE_WEBHOOK_SECRET=${k.webhook_secret}`);
+    const env = envLines.join('\n');
+    g.append(h('div', {class: 'env'}, env), h('button', {type: 'button', class: 'btn btn-copy', onclick: (e) => copyText(env, e.target)}, 'Copy as .env'));
+    body.append(g);
+  }
+  if (data.notes) body.append(h('div', {class: 'note'}, h('b', {}, 'Notes from sender: '), data.notes));
 }
 
 async function init() {
@@ -279,27 +637,38 @@ async function init() {
     const res = await fetch(`/api/drops/${DROP_ID}`);
     if (!res.ok) { show('expired'); return; }
     const data = await res.json();
+    const kind = data.kind || 'card';
+
+    if (kind === 'stripe' && data.config) {
+      CONFIG = Object.assign(CONFIG, JSON.parse(await decrypt(key, data.config)));
+    }
 
     if (!data.has_data) {
-      show('form');
+      if (kind === 'stripe') { renderStripeForm(data.expires_at); show('form-stripe'); }
+      else show('form-card');
+      return;
+    }
+
+    const plaintext = JSON.parse(await decrypt(key, data.encrypted_data));
+    if (kind === 'stripe' || plaintext.type === 'stripe') {
+      renderStripeView(plaintext);
+      show('view-stripe');
     } else {
-      const plaintext = await decrypt(key, data.encrypted_data);
-      const card = JSON.parse(plaintext);
-      document.getElementById('view-name').textContent = card.name;
-      document.getElementById('view-address').textContent = card.address;
-      document.getElementById('view-number').textContent = card.number;
-      document.getElementById('view-expiry').textContent = card.expiry;
-      document.getElementById('view-cvv').textContent = card.cvv;
-      show('view');
+      document.getElementById('view-name').textContent = plaintext.name;
+      document.getElementById('view-address').textContent = plaintext.address;
+      document.getElementById('view-number').textContent = plaintext.number;
+      document.getElementById('view-expiry').textContent = plaintext.expiry;
+      document.getElementById('view-cvv').textContent = plaintext.cvv;
+      show('view-card');
     }
   } catch (e) {
     show('expired');
   }
 }
 
-async function submitForm(e) {
+async function submitCard(e) {
   e.preventDefault();
-  const btn = document.getElementById('submit-btn');
+  const btn = document.getElementById('submit-card-btn');
   btn.disabled = true;
   btn.textContent = 'Encrypting...';
 
@@ -319,11 +688,11 @@ async function submitForm(e) {
       body: JSON.stringify({encrypted_data: blob}),
     });
     if (!res.ok) throw new Error('Submit failed');
-    document.getElementById('form-status').innerHTML = '<span class="success">&#10003; Sent securely. You can close this page.</span>';
+    document.getElementById('form-card-status').innerHTML = '<span class="success">&#10003; Sent securely. You can close this page.</span>';
     btn.style.display = 'none';
-    document.querySelector('form').querySelectorAll('input').forEach(i => i.disabled = true);
+    document.querySelectorAll('#form-card input').forEach(i => i.disabled = true);
   } catch (err) {
-    document.getElementById('form-status').innerHTML = `<span class="error">Error: ${err.message}</span>`;
+    document.getElementById('form-card-status').innerHTML = `<span class="error">Error: ${err.message}</span>`;
     btn.disabled = false;
     btn.textContent = 'Send Securely';
   }
